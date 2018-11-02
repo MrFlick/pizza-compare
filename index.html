@@ -1,0 +1,194 @@
+<html>
+    <head>
+        <link href="https://fonts.googleapis.com/css?family=Fjalla+One" rel="stylesheet">
+        <style>
+            body { 
+                background-color: rgba(240, 245, 220, 0.801); 
+                text-align:center;
+                font-family: 'Fjalla One', sans-serif;}
+            section {clear: both}
+            section div {width: 100%}
+
+            body > div {background-color: white; 
+                margin: 20px auto; width: 500px; 
+                box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.2);
+                padding: 5px}
+
+            section div.half {width: 50%; float: left;}
+            section .pizzabox {position: relative;}
+            section .pizzabox span {position: absolute;
+                color: white; font-size: 36px;
+                text-shadow:
+                    -1px -1px 0 #000,  
+                    1px -1px 0 #000,
+                    -1px 1px 0 #000,
+                    1px 1px 0 #000;
+                top: 50%; left: 50%; transform: translate(-50%, -50%);}
+        </style>
+        <script>
+            if (!Array.isArray) {
+                Array.isArray = function(arg) {
+                    return Object.prototype.toString.call(arg) === '[object Array]';
+                };
+            }
+
+            var settings = {
+                inchToPixel: 10,
+                padding: 5
+            };
+            function addSliceToMatchArea(pizza1, pizza2) {
+                var result = [];
+                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
+                var area2 = Math.pow(pizza2.diameter/2, 2);
+                var growFactor = area2/area1;
+                var pies = Math.floor(growFactor);
+                var slice = growFactor-Math.floor(growFactor);
+                for (var i=0; i<pies; i++) {
+                    result.push(Object.assign({}, pizza1))
+                }
+                if (slice > .001) {
+                    var pizza = Object.assign({}, pizza1)
+                    pizza.slices = [{p: slice}]
+                    result.push(pizza)
+                }
+                return result
+            }
+            function markAdditionalSlice(pizza1, pizza2) {
+                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
+                var area2 = Math.pow(pizza2.diameter/2, 2);
+                var existingFactor = area1/area2;
+                var slices = [];
+                //slices.push({p: existingFactor, color:pizza1.color})
+                slices.push({p: 1-existingFactor, color:pizza2.color})
+                var pizza = Object.assign({}, pizza2)
+                pizza.slices = slices;
+                return pizza
+            }
+            function buildPizzas(canvas, pizzas, settings) {
+                if (!Array.isArray(pizzas)) {
+                    pizzas = [pizzas]
+                }
+                var diams = pizzas.map(function(p) {
+                    return p.diameter * settings.inchToPixel});
+                
+                var width = diams.reduce(function(a, b) {
+                    return a + b }, 0);
+                var height = diams.reduce(function(a, b) {
+                    return Math.max(a, b) }, 0);
+
+                canvas.width = width + settings.padding * (pizzas.length+1);
+                canvas.height = height + settings.padding;
+                var ctx = canvas.getContext("2d");
+
+                ctx.translate(0,canvas.height/2);
+                var shift = 0;
+                for(var i=0; i<pizzas.length; i++) {
+                    pizza = pizzas[i]
+                    if (!pizza.slices) {
+                        pizza.slices = [{p: 1}]
+                    }
+                    var radius = diams[i]/2;
+                    var pOffset = 0;
+                    pizza.slices.forEach(function(slice) {
+                        ctx.beginPath();
+                        ctx.moveTo(shift + radius, 0)
+                        ctx.arc(shift + radius, 0, radius, pOffset + 0, 
+                            pOffset + 2*Math.PI * slice.p);
+                        ctx.lineTo(shift + radius, 0)
+                        ctx.fillStyle = slice.color || pizza.color;
+                        ctx.fill();
+                        pOffset += slice.p * 2*Math.PI
+                    })
+                    shift += diams[i] + settings.padding
+                }
+                return canvas;
+            }
+
+            function drawPizzas(pizza1, pizza2) {
+                function update(id, pizza) {
+                    buildPizzas(document.getElementById(id), pizza, settings)
+                }
+                function updateText(id, text) {
+                    document.getElementById(id).innerText = text
+                }
+                update("pizza1pic", pizza1)
+                updateText("pizza1label", pizza1.diameter+ "\"")
+                update("pizza2pic", pizza2)
+                updateText("pizza2label", pizza2.diameter + "\"")
+                var smallerPizza, largerPizza
+                if (pizza1.diameter < pizza2.diameter) {
+                    smallerPizza = pizza1
+                    largerPizza = pizza2
+                } else {
+                    smallerPizza = pizza2
+                    largerPizza = pizza1
+                }
+                update("extendsmaller", addSliceToMatchArea(smallerPizza, largerPizza))
+                update("removesmaller", markAdditionalSlice(smallerPizza, largerPizza))
+            }
+
+            function updatePizzas() {
+                var p1 = parseInt(document.getElementById("pizza1").value);
+                var p2 = parseInt(document.getElementById("pizza2").value);
+                var pizza1 = {
+                    diameter: p1,
+                    color: "#BBD4C6"
+                }
+                var pizza2 = {
+                    diameter: p2,
+                    color: "#447276"
+                }
+                drawPizzas(pizza1, pizza2)
+            }
+
+            function init() {
+                document.getElementById("pizza1").addEventListener("input", 
+                    updatePizzas)
+                document.getElementById("pizza2").addEventListener("input", 
+                    updatePizzas)
+                updatePizzas()
+                
+            }
+
+        </script>
+    </head>
+    <body onload="init()"><div>
+        <h1>More Pizza?</h1>
+            <section>
+                <div>
+                    <div class="half">
+                        <h2>Pizza 1</h2>
+                        <input type="range" min="1" max="36" value="8" class="slider" id="pizza1">
+                        <div class="pizzabox">
+                            <canvas id="pizza1pic"></canvas>
+                            <span id="pizza1label"></span>
+                        </div>
+                    </div>
+                    <div class="half">
+                        <h2>Pizza 2</h2>
+                        <input type="range" min="1" max="36" value="12" class="slider" id="pizza2">
+                        <div class="pizzabox">
+                            <canvas id="pizza2pic"></canvas>
+                            <span id="pizza2label"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section>
+                <div>
+                    <div>
+                        <h3>How many smaller pizzas can be made from larger pizza?</h3>
+                        <canvas id="extendsmaller"></canvas>
+                    </div>
+                </div>
+            </section>
+            <section>
+                <div>
+                    <div>
+                        <h3>How much "extra" pizza do you get from the larger pizza?</h3>
+                        <canvas id="removesmaller"></canvas>
+                    </div>
+            </div>
+            </section>
+    </div></body>
+</html>
