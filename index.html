@@ -32,11 +32,50 @@
                     return Object.prototype.toString.call(arg) === '[object Array]';
                 };
             }
-
             var defaultSettings = {
                 inchToPixel: 10,
                 padding: 5
             };
+            function gcd(a,b){
+                return b ? gcd(b, a%b) : a;
+            }
+            function loadFracs() {
+                var result = []
+                var denoms = [2, 3, 4, 5, 6, 8, 10, 16];
+                for(var i=0; i<denoms.length; i++) {
+                    var d = denoms[i];
+                    for(var n=1; n<d; n++) {
+                        if (gcd(n,d)>1) {
+                            continue;
+                        }
+                        result.push({val: n/d, desc: n+"/"+d})
+                    }
+                }
+                return result.sort(function(a,b) {return a.val-b.val})
+            }
+            defaultSettings.fracs = loadFracs()
+            function nearestFrac(x, fracs) {
+                var diff = 100;
+                var i = 0;
+                while( Math.abs(x - fracs[i+1].val) < diff && i<fracs.length-2) {
+                    diff = x-fracs[i+1].val
+                    i++
+                }
+                return fracs[i];
+            }
+            function getMultiplier(x, fracs) {
+                var base = Math.floor(x)
+                var dec = x - base;
+                console.log(dec, base)
+                var nearest = nearestFrac(dec, fracs)
+                var approx = true;
+                if(Math.abs(nearest.val-dec)<.0001) {
+                    approx = false;
+                }
+                return ((approx) ? "~" : "") + 
+                    ((base>0)? base + " " : "") + 
+                    nearest.desc
+            }
             function addSliceToMatchArea(pizza1, pizza2) {
                 var result = [];
                 var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
@@ -53,6 +92,13 @@
                     result.push(pizza)
                 }
                 return result
+            }
+            function getMatchingText(pizza1, pizza2, settings) {
+                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
+                var area2 = Math.pow(pizza2.diameter/2, 2);
+                var growFactor = area2/area1;
+                return "You can make " + getMultiplier(growFactor, settings.fracs) + 
+                    " smaller pizzas from the larger pizza."          
             }
             function markAdditionalSlice(pizza1, pizza2) {
                 var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
@@ -125,10 +171,11 @@
                     document.getElementById(id).innerText = text
                 }
                 update("pizza1pic", pizza1)
-                updateText("pizza1label", pizza1.diameter+ "\"")
+                updateText("pizza1label", pizza1.diameter + "\"")
                 update("pizza2pic", pizza2)
                 updateText("pizza2label", pizza2.diameter + "\"")
                 update("extendsmaller", addSliceToMatchArea(smallerPizza, largerPizza))
+                updateText("extendsmallertext", getMatchingText(smallerPizza, largerPizza, settings))
                 update("removesmaller", markAdditionalSlice(smallerPizza, largerPizza))
             }
 
@@ -190,6 +237,7 @@
                     <div>
                         <h3>How many smaller pizzas can be made from larger pizza?</h3>
                         <canvas id="extendsmaller"></canvas>
+                        <p id="extendsmallertext"></p>
                     </div>
                 </div>
             </section>
