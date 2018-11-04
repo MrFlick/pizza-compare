@@ -41,6 +41,7 @@
             }
             function loadFracs() {
                 var result = []
+                result.push({val: 0, desc: "0"})
                 var denoms = [2, 3, 4, 5, 6, 8, 10, 16];
                 for(var i=0; i<denoms.length; i++) {
                     var d = denoms[i];
@@ -55,7 +56,7 @@
             }
             defaultSettings.fracs = loadFracs()
             function nearestFrac(x, fracs) {
-                var diff = 100;
+                var diff = Math.abs(x - fracs[0].val);
                 var i = 0;
                 while( Math.abs(x - fracs[i+1].val) < diff && i<fracs.length-2) {
                     diff = x-fracs[i+1].val
@@ -65,16 +66,15 @@
             }
             function getMultiplier(x, fracs) {
                 var base = Math.floor(x)
-                var dec = x - base;
-                console.log(dec, base)
+                var dec = x - base
                 var nearest = nearestFrac(dec, fracs)
                 var approx = true;
                 if(Math.abs(nearest.val-dec)<.0001) {
                     approx = false;
                 }
                 return ((approx) ? "~" : "") + 
-                    ((base>0)? base + " " : "") + 
-                    nearest.desc
+                    [((base>0) ? base : ""),
+                    ((nearest.val!=0) ? nearest.desc : "")].join(" ")
             }
             function addSliceToMatchArea(pizza1, pizza2) {
                 var result = [];
@@ -97,6 +97,7 @@
                 var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
                 var area2 = Math.pow(pizza2.diameter/2, 2);
                 var growFactor = area2/area1;
+                if (growFactor==1) return ""
                 return "You can make " + getMultiplier(growFactor, settings.fracs) + 
                     " smaller pizzas from the larger pizza."          
             }
