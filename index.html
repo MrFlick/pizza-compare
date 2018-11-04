@@ -58,7 +58,7 @@
                 var area2 = Math.pow(pizza2.diameter/2, 2);
                 var existingFactor = area1/area2;
                 var slices = [];
-                //slices.push({p: existingFactor, color:pizza1.color})
+                slices.push({p: existingFactor, color:pizza1.color})
                 slices.push({p: 1-existingFactor, color:pizza2.color})
                 var pizza = Object.assign({}, pizza2)
                 pizza.slices = slices;
@@ -88,7 +88,7 @@
                         pizza.slices = [{p: 1}]
                     }
                     var radius = diams[i]/2;
-                    var pOffset = 0;
+                    var pOffset = -Math.PI/2;
                     pizza.slices.forEach(function(slice) {
                         ctx.beginPath();
                         ctx.moveTo(shift + radius, 0)
@@ -185,7 +185,7 @@
             <section>
                 <div>
                     <div>
-                        <h3>How much "extra" pizza do you get from the larger pizza?</h3>
+                        <h3>Where would the smaller pizza fit in the larger?</h3>
                         <canvas id="removesmaller"></canvas>
                     </div>
             </div>
