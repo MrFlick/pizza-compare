@@ -32,6 +32,11 @@
                     return Object.prototype.toString.call(arg) === '[object Array]';
                 };
             }
+            function removeChildren(node) {
+                while (node.hasChildNodes()) {
+                    node.removeChild(node.lastChild);
+                }
+            }
             var defaultSettings = {
                 inchToPixel: 10,
                 padding: 5
@@ -125,48 +130,42 @@
                 var area2 = Math.pow(pizza2.diameter/2, 2);
                 var existingFactor = area1/area2;
                 if (existingFactor >= 1) return ""
-                console.log(existingFactor)
                 return "The smaller pizza would take up  " + getPercent(existingFactor) +
                     " of the larger pizza."
             }
-            function buildPizzas(canvas, pizzas, settings) {
+            function buildPizzas(pizzas, settings) {
+                var result = document.createDocumentFragment()
+
                 if (!Array.isArray(pizzas)) {
                     pizzas = [pizzas]
                 }
-                var diams = pizzas.map(function(p) {
-                    return p.diameter * settings.inchToPixel});
-                
-                var width = diams.reduce(function(a, b) {
-                    return a + b }, 0);
-                var height = diams.reduce(function(a, b) {
-                    return Math.max(a, b) }, 0);
 
-                canvas.width = width + settings.padding * (pizzas.length+1);
-                canvas.height = height + settings.padding;
-                var ctx = canvas.getContext("2d");
+                pizzas.forEach(function(pizza) {
+                    var canvas = document.createElement("canvas")
+                    var size = pizza.diameter * settings.inchToPixel
+                    canvas.width = size + settings.padding;
+                    canvas.height = size + settings.padding;
+                    var ctx = canvas.getContext("2d")
 
-                ctx.translate(0,canvas.height/2);
-                var shift = 0;
-                for(var i=0; i<pizzas.length; i++) {
-                    pizza = pizzas[i]
+                    ctx.translate(canvas.width/2, canvas.height/2);
                     if (!pizza.slices) {
                         pizza.slices = [{p: 1}]
                     }
-                    var radius = diams[i]/2;
+                    var radius = size/2;
                     var pOffset = -Math.PI/2;
                     pizza.slices.forEach(function(slice) {
                         ctx.beginPath();
-                        ctx.moveTo(shift + radius, 0)
-                        ctx.arc(shift + radius, 0, radius, pOffset + 0, 
-                            pOffset + 2*Math.PI * slice.p);
-                        ctx.lineTo(shift + radius, 0)
+                        ctx.moveTo(0, 0)
+                        ctx.arc(0, 0, radius, pOffset + 0,
+                                pOffset + 2*Math.PI * slice.p);
+                        ctx.lineTo(0, 0)
                         ctx.fillStyle = slice.color || pizza.color;
                         ctx.fill();
                         pOffset += slice.p * 2*Math.PI
                     })
-                    shift += diams[i] + settings.padding
-                }
-                return canvas;
+                    result.appendChild(canvas);
+                })
+                return result;
             }
 
             function drawPizzas(pizza1, pizza2) {
@@ -183,7 +182,10 @@
                     settings.inchToPixel = (500/2)/largerPizza.diameter
                 }
                 function update(id, pizza) {
-                    buildPizzas(document.getElementById(id), pizza, settings)
+                    var objs = buildPizzas(pizza, settings)
+                    var node = document.getElementById(id)
+                    removeChildren(node)
+                    node.appendChild(objs)
                 }
                 function updateText(id, text) {
                     document.getElementById(id).innerText = text
@@ -237,7 +239,7 @@
                         <h2>Pizza 1</h2>
                         <input type="range" min="1" max="36" value="8" class="slider" id="pizza1">
                         <div class="pizzabox">
-                            <canvas id="pizza1pic"></canvas>
+                            <div id="pizza1pic"></div>
                             <span id="pizza1label"></span>
                         </div>
                     </div>
@@ -245,7 +247,7 @@
                         <h2>Pizza 2</h2>
                         <input type="range" min="1" max="36" value="12" class="slider" id="pizza2">
                         <div class="pizzabox">
-                            <canvas id="pizza2pic"></canvas>
+                            <div id="pizza2pic"></div>
                             <span id="pizza2label"></span>
                         </div>
                     </div>
@@ -255,7 +257,7 @@
                 <div>
                     <div>
                         <h3>How many smaller pizzas can be made from larger pizza?</h3>
-                        <canvas id="extendsmaller"></canvas>
+                        <div id="extendsmaller"></div>
                         <p id="extendsmallertext"></p>
                     </div>
                 </div>
@@ -264,7 +266,7 @@
                 <div>
                     <div>
                         <h3>Where would the smaller pizza fit in the larger?</h3>
-                        <canvas id="removesmaller"></canvas>
+                        <div id="removesmaller"></div>
                         <p id="removesmallertext"></p>
                     </div>
             </div>
