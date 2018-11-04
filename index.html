@@ -76,6 +76,14 @@
                     [((base>0) ? base : ""),
                     ((nearest.val!=0) ? nearest.desc : "")].join(" ")
             }
+            function getPercent(x) {
+                var dec = (x*100) % 1
+                var approx = false
+                if (dec > .01) {
+                    approx = true
+                }
+                return ((approx)?"~":"") + (x*100).toFixed(0) + "%"
+            }
             function addSliceToMatchArea(pizza1, pizza2) {
                 var result = [];
                 var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
@@ -97,7 +105,7 @@
                 var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
                 var area2 = Math.pow(pizza2.diameter/2, 2);
                 var growFactor = area2/area1;
-                if (growFactor==1) return ""
+                if (growFactor<=1) return ""
                 return "You can make " + getMultiplier(growFactor, settings.fracs) + 
                     " smaller pizzas from the larger pizza."          
             }
@@ -111,6 +119,15 @@
                 var pizza = Object.assign({}, pizza2)
                 pizza.slices = slices;
                 return pizza
+            }
+            function getAdditionalText(pizza1, pizza2, settings) {
+                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
+                var area2 = Math.pow(pizza2.diameter/2, 2);
+                var existingFactor = area1/area2;
+                if (existingFactor >= 1) return ""
+                console.log(existingFactor)
+                return "The smaller pizza would take up  " + getPercent(existingFactor) +
+                    " of the larger pizza."
             }
             function buildPizzas(canvas, pizzas, settings) {
                 if (!Array.isArray(pizzas)) {
@@ -178,6 +195,7 @@
                 update("extendsmaller", addSliceToMatchArea(smallerPizza, largerPizza))
                 updateText("extendsmallertext", getMatchingText(smallerPizza, largerPizza, settings))
                 update("removesmaller", markAdditionalSlice(smallerPizza, largerPizza))
+                updateText("removesmallertext", getAdditionalText(smallerPizza, largerPizza))
             }
 
             function updatePizzas() {
@@ -247,6 +265,7 @@
                     <div>
                         <h3>Where would the smaller pizza fit in the larger?</h3>
                         <canvas id="removesmaller"></canvas>
+                        <p id="removesmallertext"></p>
                     </div>
             </div>
             </section>
