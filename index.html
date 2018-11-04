@@ -32,7 +32,7 @@
                 };
             }
 
-            var settings = {
+            var defaultSettings = {
                 inchToPixel: 10,
                 padding: 5
             };
@@ -105,6 +105,18 @@
             }
 
             function drawPizzas(pizza1, pizza2) {
+                var settings = Object.assign({}, defaultSettings)
+                var smallerPizza, largerPizza
+                if (pizza1.diameter < pizza2.diameter) {
+                    smallerPizza = pizza1
+                    largerPizza = pizza2
+                } else {
+                    smallerPizza = pizza2
+                    largerPizza = pizza1
+                }
+                if (largerPizza.diameter*settings.inchToPixel>500/2) {
+                    settings.inchToPixel = (500/2)/largerPizza.diameter
+                }
                 function update(id, pizza) {
                     buildPizzas(document.getElementById(id), pizza, settings)
                 }
@@ -115,14 +127,6 @@
                 updateText("pizza1label", pizza1.diameter+ "\"")
                 update("pizza2pic", pizza2)
                 updateText("pizza2label", pizza2.diameter + "\"")
-                var smallerPizza, largerPizza
-                if (pizza1.diameter < pizza2.diameter) {
-                    smallerPizza = pizza1
-                    largerPizza = pizza2
-                } else {
-                    smallerPizza = pizza2
-                    largerPizza = pizza1
-                }
                 update("extendsmaller", addSliceToMatchArea(smallerPizza, largerPizza))
                 update("removesmaller", markAdditionalSlice(smallerPizza, largerPizza))
             }
