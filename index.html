@@ -217,8 +217,7 @@
                 }
                 input.value = state.refPrice
                 var price =  parseFloat(state.refPrice)
-                output.innerText = (price) ? "$" + (factor * price).toFixed(2) : "??"
-
+                output.innerText = (price) ? (factor * price).toLocaleString(undefined, { style: 'currency', currency: 'USD' }) : "??"
             }
 
             function drawPizzas(pizza1, pizza2) {
@@ -267,6 +266,7 @@
                     color: defaultSettings.pizza2Color
                 }
                 drawPizzas(pizza1, pizza2)
+                updatePrices()
             }
 
             function init() {
@@ -279,6 +279,7 @@
                 var swap = document.getElementById("swapprice")
                 swap.addEventListener("click", swapPriceRef)
                 var price = document.getElementById("refprice")
+                price.value = state.refPrice
                 price.addEventListener("input", updatePrice)
                 updatePizzas()
                 updatePrices()
