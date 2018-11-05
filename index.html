@@ -102,48 +102,42 @@
                 }
                 return ((approx)?"~":"") + (x*100).toFixed(0) + "%"
             }
-            function addSliceToMatchArea(pizza1, pizza2) {
+            function addSliceToMatchArea(stats) {
                 var result = [];
-                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
-                var area2 = Math.pow(pizza2.diameter/2, 2);
-                var growFactor = area2/area1;
-                var pies = Math.floor(growFactor);
-                var slice = growFactor-Math.floor(growFactor);
+                var growthFactor = stats.growthFactor;
+                var pies = Math.floor(growthFactor);
+                var slice = growthFactor-Math.floor(growthFactor);
                 for (var i=0; i<pies; i++) {
-                    result.push(Object.assign({}, pizza1))
+                    result.push(Object.assign({}, stats.smallerPizza))
                 }
                 if (slice > .001) {
-                    var pizza = Object.assign({}, pizza1)
+                    var pizza = Object.assign({}, stats.smallerPizza)
                     pizza.slices = [{p: slice}]
                     result.push(pizza)
                 }
                 return result
             }
-            function getMatchingText(pizza1, pizza2, settings) {
-                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
-                var area2 = Math.pow(pizza2.diameter/2, 2);
-                var growFactor = area2/area1;
-                if (growFactor<=1) return ""
-                return "You can make " + getMultiplier(growFactor, settings.fracs) + 
+            function getMatchingText(stats, settings) {
+                var growthFactor = stats.growthFactor;
+                if (growthFactor<=1) return ""
+                return "You can make " + 
+                    getMultiplier(growthFactor, settings.fracs) +
                     " smaller pizzas from the larger pizza."          
             }
-            function markAdditionalSlice(pizza1, pizza2) {
-                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
-                var area2 = Math.pow(pizza2.diameter/2, 2);
-                var existingFactor = area1/area2;
+            function markAdditionalSlice(stats) {
+                var existingProp = stats.existingProp;
                 var slices = [];
-                slices.push({p: existingFactor, color:pizza1.color})
-                slices.push({p: 1-existingFactor, color:pizza2.color})
-                var pizza = Object.assign({}, pizza2)
+                slices.push({p: existingProp, color: stats.smallerPizza.color})
+                slices.push({p: 1-existingProp, color: stats.largerPizza.color})
+                var pizza = Object.assign({}, stats.largerPizza)
                 pizza.slices = slices;
                 return pizza
             }
-            function getAdditionalText(pizza1, pizza2, settings) {
-                var area1 = Math.pow(pizza1.diameter/2, 2); //ignore pi
-                var area2 = Math.pow(pizza2.diameter/2, 2);
-                var existingFactor = area1/area2;
-                if (existingFactor >= 1) return ""
-                return "The smaller pizza would take up  " + getPercent(existingFactor) +
+            function getAdditionalText(stats) {
+                var existingProp = stats.existingProp;
+                if (existingProp >= 1) return ""
+                return "The smaller pizza would take up  " + 
+                    getPercent(existingProp) +
                     " of the larger pizza."
             }
             function buildPizzas(pizzas, settings) {
@@ -220,18 +214,12 @@
                 output.innerText = (price) ? (factor * price).toLocaleString(undefined, { style: 'currency', currency: 'USD' }) : "??"
             }
 
-            function drawPizzas(pizza1, pizza2) {
+            function drawPizzas() {
                 var settings = Object.assign({}, defaultSettings)
-                var smallerPizza, largerPizza
-                if (pizza1.diameter < pizza2.diameter) {
-                    smallerPizza = pizza1
-                    largerPizza = pizza2
-                } else {
-                    smallerPizza = pizza2
-                    largerPizza = pizza1
-                }
-                if (largerPizza.diameter*settings.inchToPixel>500/2) {
-                    settings.inchToPixel = (500/2)/largerPizza.diameter
+                var stats = calcStats(state)
+                
+                if (stats.largerPizza.diameter * settings.inchToPixel>500/2) {
+                    settings.inchToPixel = (500/2)/stats.largerPizza.diameter
                 }
                 function update(id, pizza) {
                     var objs = buildPizzas(pizza, settings)
@@ -242,14 +230,44 @@
                 function updateText(id, text) {
                     document.getElementById(id).innerText = text
                 }
-                update("pizza1pic", pizza1)
-                updateText("pizza1label", pizza1.diameter + "\"")
-                update("pizza2pic", pizza2)
-                updateText("pizza2label", pizza2.diameter + "\"")
-                update("extendsmaller", addSliceToMatchArea(smallerPizza, largerPizza))
-                updateText("extendsmallertext", getMatchingText(smallerPizza, largerPizza, settings))
-                update("removesmaller", markAdditionalSlice(smallerPizza, largerPizza))
-                updateText("removesmallertext", getAdditionalText(smallerPizza, largerPizza))
+                update("pizza1pic", stats.pizza1)
+                updateText("pizza1label", stats.pizza1.diameter + "\"")
+                update("pizza2pic", stats.pizza2)
+                updateText("pizza2label", stats.pizza2.diameter + "\"")
+                update("extendsmaller", addSliceToMatchArea(stats))
+                updateText("extendsmallertext", getMatchingText(stats, settings))
+                update("removesmaller", markAdditionalSlice(stats))
+                updateText("removesmallertext", getAdditionalText(stats))
+            }
+
+            function calcStats(state) {
+                var stats = {}
+                function calcArea(p) {
+                    p.propArea = Math.pow(p.diameter/2, 2)
+                    p.area = p.propArea * Math.PI
+                }
+                stats.pizza1 = {
+                    diameter: state.pizza1,
+                    color: defaultSettings.pizza1Color
+                }
+                stats.pizza2 = {
+                    diameter: state.pizza2,
+                    color: defaultSettings.pizza2Color
+                }
+                calcArea(stats.pizza1)
+                calcArea(stats.pizza2)
+                if (stats.pizza1.diameter < stats.pizza2.diameter) {
+                    stats.smallerPizza = stats.pizza1
+                    stats.largerPizza = stats.pizza2
+                } else {
+                    stats.smallerPizza = stats.pizza2
+                    stats.largerPizza = stats.pizza1
+                }
+                stats.existingProp = stats.smallerPizza.propArea/
+                    stats.largerPizza.propArea
+                stats.growthFactor = stats.largerPizza.propArea/
+                    stats.smallerPizza.propArea
+                return stats
             }
 
             function updatePizzas() {
@@ -257,15 +275,7 @@
                 var p2 = parseInt(document.getElementById("pizza2").value);
                 state.pizza1 = p1
                 state.pizza2 = p2
-                var pizza1 = {
-                    diameter: p1,
-                    color: defaultSettings.pizza1Color
-                }
-                var pizza2 = {
-                    diameter: p2,
-                    color: defaultSettings.pizza2Color
-                }
-                drawPizzas(pizza1, pizza2)
+                drawPizzas()
                 updatePrices()
             }
 
