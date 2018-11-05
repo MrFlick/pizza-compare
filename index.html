@@ -42,6 +42,7 @@
                     node.removeChild(node.lastChild);
                 }
             }
+
             var defaultSettings = {
                 inchToPixel: 10,
                 padding: 5,
@@ -54,6 +55,7 @@
                 refPrice: 15,
                 refPizza: 1
             }
+            var views = {};
 
             var getMultiplier = (function() {
                 function gcd(a,b){
@@ -106,44 +108,7 @@
                 }
                 return ((approx)?"~":"") + (x*100).toFixed(0) + "%"
             }
-            function addSliceToMatchArea(stats) {
-                var result = [];
-                var growthFactor = stats.growthFactor;
-                var pies = Math.floor(growthFactor);
-                var slice = growthFactor-Math.floor(growthFactor);
-                for (var i=0; i<pies; i++) {
-                    result.push(Object.assign({}, stats.smallerPizza))
-                }
-                if (slice > .001) {
-                    var pizza = Object.assign({}, stats.smallerPizza)
-                    pizza.slices = [{p: slice}]
-                    result.push(pizza)
-                }
-                return result
-            }
-            function getMatchingText(stats, settings) {
-                var growthFactor = stats.growthFactor;
-                if (growthFactor<=1) return ""
-                return "You can make " + 
-                    getMultiplier(growthFactor) +
-                    " smaller pizzas from the larger pizza."          
-            }
-            function markAdditionalSlice(stats) {
-                var existingProp = stats.existingProp;
-                var slices = [];
-                slices.push({p: existingProp, color: stats.smallerPizza.color})
-                slices.push({p: 1-existingProp, color: stats.largerPizza.color})
-                var pizza = Object.assign({}, stats.largerPizza)
-                pizza.slices = slices;
-                return pizza
-            }
-            function getAdditionalText(stats) {
-                var existingProp = stats.existingProp;
-                if (existingProp >= 1) return ""
-                return "The smaller pizza would take up  " +
-                    getPercent(existingProp) +
-                    " of the larger pizza."
-            }
+
             function buildPizzas(pizzas, settings) {
                 var result = document.createDocumentFragment()
 
@@ -190,6 +155,96 @@
                 updatePrices()
             }
 
+            function PizzaBox(node, forPizza, onupdate) {
+                var input = node.querySelector("input")
+                var picture = node.querySelector(".draw")
+                var label = node.querySelector(".label")
+
+                function init(stats, settings) {
+                    input.value = stats[forPizza].diameter
+                    input.addEventListener("input", onupdate)
+                }
+                function update(stats, settings) {
+                    label.innerText = stats[forPizza].diameter + "\""
+                    removeChildren(picture)
+                    picture.appendChild(buildPizzas(stats[forPizza], settings))
+                }
+                function value() {
+                    return parseInt(input.value)
+                }
+                this.init = init
+                this.update = update
+                this.value = value
+            }
+
+            function ExtendSmaller(node) {
+                var picture = node.querySelector(".draw")
+                var label = node.querySelector(".label")
+
+                function getPizzas(stats) {
+                    var result = [];
+                    var growthFactor = stats.growthFactor;
+                    var pies = Math.floor(growthFactor);
+                    var slice = growthFactor-Math.floor(growthFactor);
+                    for (var i=0; i<pies; i++) {
+                        result.push(Object.assign({}, stats.smallerPizza))
+                    }
+                    if (slice > .001) {
+                        var pizza = Object.assign({}, stats.smallerPizza)
+                        pizza.slices = [{p: slice}]
+                        result.push(pizza)
+                    }
+                    return result
+                }
+
+                function getText(stats) {
+                    var growthFactor = stats.growthFactor;
+                    if (growthFactor<=1) return ""
+                    return "You can make " + 
+                        getMultiplier(growthFactor) +
+                        " smaller pizzas from the larger pizza."          
+                }
+
+                function update(stats, settings) {
+                    removeChildren(picture)
+                    picture.appendChild(buildPizzas(getPizzas(stats), settings))
+                    label.innerText = getText(stats)
+                }
+
+                this.update = update
+            }
+
+            function EmbedSmaller(node) {
+                var picture = node.querySelector(".draw")
+                var label = node.querySelector(".label")
+
+                function getPizzas(stats) {
+                    var existingProp = stats.existingProp;
+                    var slices = [];
+                    slices.push({p: existingProp, color: stats.smallerPizza.color})
+                    slices.push({p: 1-existingProp, color: stats.largerPizza.color})
+                    var pizza = Object.assign({}, stats.largerPizza)
+                    pizza.slices = slices;
+                    return pizza
+                }
+
+                function getText(stats) {
+                    var existingProp = stats.existingProp;
+                    if (existingProp >= 1) return ""
+                    return "The smaller pizza would take up  " +
+                        getPercent(existingProp) +
+                        " of the larger pizza."      
+                }
+
+                function update(stats, settings) {
+                    removeChildren(picture)
+                    picture.appendChild(buildPizzas(getPizzas(stats), settings))
+                    label.innerText = getText(stats)
+                }
+
+                this.update = update
+            }
+
             function updatePrices() {
                 var p1box = document.getElementById("pizza1price")
                 var p2box = document.getElementById("pizza2price")
@@ -216,32 +271,6 @@
                 input.value = state.refPrice
                 var price =  parseFloat(state.refPrice)
                 output.innerText = (price) ? (factor * price).toLocaleString(undefined, { style: 'currency', currency: 'USD' }) : "??"
-            }
-
-            function drawPizzas() {
-                var settings = Object.assign({}, defaultSettings)
-                var stats = calcStats(state)
-
-                if (stats.largerPizza.diameter * settings.inchToPixel>500/2) {
-                    settings.inchToPixel = (500/2)/stats.largerPizza.diameter
-                }
-                function update(id, pizza) {
-                    var objs = buildPizzas(pizza, settings)
-                    var node = document.getElementById(id)
-                    removeChildren(node)
-                    node.appendChild(objs)
-                }
-                function updateText(id, text) {
-                    document.getElementById(id).innerText = text
-                }
-                update("pizza1pic", stats.pizza1)
-                updateText("pizza1label", stats.pizza1.diameter + "\"")
-                update("pizza2pic", stats.pizza2)
-                updateText("pizza2label", stats.pizza2.diameter + "\"")
-                update("extendsmaller", addSliceToMatchArea(stats))
-                updateText("extendsmallertext", getMatchingText(stats, settings))
-                update("removesmaller", markAdditionalSlice(stats))
-                updateText("removesmallertext", getAdditionalText(stats))
             }
 
             function calcStats(state) {
@@ -275,21 +304,34 @@
             }
 
             function updatePizzas() {
-                var p1 = parseInt(document.getElementById("pizza1").value);
-                var p2 = parseInt(document.getElementById("pizza2").value);
-                state.pizza1 = p1
-                state.pizza2 = p2
-                drawPizzas()
+                state.pizza1 = views.p1.value()
+                state.pizza2 = views.p2.value()
+
+                var settings = Object.assign({}, defaultSettings)
+                var stats = calcStats(state)
+
+                if (stats.largerPizza.diameter * settings.inchToPixel>500/2) {
+                    settings.inchToPixel = (500/2)/stats.largerPizza.diameter
+                }
+
+                views.p1.update(stats, settings)
+                views.p2.update(stats, settings)
+                views.extend.update(stats, settings)
+                views.embed.update(stats, settings)
+
                 updatePrices()
             }
 
             function init() {
-                var p1 = document.getElementById("pizza1")
-                p1.addEventListener("input", updatePizzas)
-                p1.value = state.pizza1
-                var p2 = document.getElementById("pizza2")
-                p2.addEventListener("input", updatePizzas)
-                p2.value = state.pizza2
+                views.p1 = new PizzaBox(document.getElementById("pizza1"),
+                    "pizza1", updatePizzas)
+                views.p2 = new PizzaBox(document.getElementById("pizza2"),
+                    "pizza2", updatePizzas)
+                var stats = calcStats(state)
+                views.p1.init(stats)
+                views.p2.init(stats)
+                views.extend = new ExtendSmaller(document.getElementById("extendsmaller"))
+                views.embed = new EmbedSmaller(document.getElementById("embedsmaller"))
                 var swap = document.getElementById("swapprice")
                 swap.addEventListener("click", swapPriceRef)
                 var price = document.getElementById("refprice")
@@ -311,36 +353,36 @@
             </section>
             <section>
                 <div class="clearfix">
-                    <div class="half">
+                    <div class="half" id="pizza1">
                         <h2>Pizza 1</h2>
-                        <input type="range" min="1" max="36" class="slider" id="pizza1">
+                        <input type="range" min="1" max="36" class="slider">
                         <div class="pizzabox">
-                            <div id="pizza1pic"></div>
-                            <span id="pizza1label"></span>
+                            <div class="draw"></div>
+                            <span class="label"></span>
                         </div>
                     </div>
-                    <div class="half">
+                    <div class="half"  id="pizza2">
                         <h2>Pizza 2</h2>
-                        <input type="range" min="1" max="36" class="slider" id="pizza2">
+                        <input type="range" min="1" max="36" class="slider">
                         <div class="pizzabox">
-                            <div id="pizza2pic"></div>
-                            <span id="pizza2label"></span>
+                            <div class="draw"></div>
+                            <span class="label"></span>
                         </div>
                     </div>
                 </div>
             </section>
-            <section>
+            <section id="extendsmaller">
                 <div>
                     <h3>How many smaller pizzas can be made from larger pizza?</h3>
-                    <div id="extendsmaller"></div>
-                    <p id="extendsmallertext"></p>
+                    <div class="draw"></div>
+                    <p class="label"></p>
                 </div>
             </section>
-            <section>
+            <section id="embedsmaller">
                 <div>
                     <h3>Where would the smaller pizza fit in the larger?</h3>
-                    <div id="removesmaller"></div>
-                    <p id="removesmallertext"></p>
+                    <div class="draw"></div>
+                    <p class="label"></p>
                 </div>
             </section>
             <section>
