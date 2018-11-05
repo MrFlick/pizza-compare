@@ -7,7 +7,6 @@
                 text-align:center;
                 font-family: 'Fjalla One', sans-serif;}
             body p {font-family: 'Georgia', serif}
-            section {clear: both}
             section div {width: 100%}
 
             body > div {background-color: #E9F1DF;
@@ -25,6 +24,12 @@
                     -1px 1px 0 #000,
                     1px 1px 0 #000;
                 top: 50%; left: 50%; transform: translate(-50%, -50%);}
+
+            .clearfix::after {
+                content: "";
+                clear: both;
+                display: table;
+            }
         </style>
         <script>
             if (!Array.isArray) {
@@ -39,8 +44,16 @@
             }
             var defaultSettings = {
                 inchToPixel: 10,
-                padding: 5
+                padding: 5,
+                pizza1Color: "#F2454B",
+                pizza2Color: "#F5B634"
             };
+            var state = {
+                pizza1: 8,
+                pizza2: 12,
+                refPrice: 15,
+                refPizza: 1
+            }
             function gcd(a,b){
                 return b ? gcd(b, a%b) : a;
             }
@@ -168,6 +181,46 @@
                 return result;
             }
 
+            function swapPriceRef () {
+                state.refPizza = (state.refPizza==1) ? 2 : 1
+                updatePrices()
+            }
+
+            function updatePrice() {
+                var price = document.getElementById("refprice").value
+                state.refPrice = price
+                updatePrices()
+            }
+
+            function updatePrices() {
+                var p1box = document.getElementById("pizza1price")
+                var p2box = document.getElementById("pizza2price")
+                var input = document.getElementById("refprice")
+                var output = document.getElementById("otherprice")
+                var factor = 1
+                if (state.refPizza==1) {
+                    if (input.parentElement != p1box) {
+                        input.parentElement.removeChild(input)
+                        p1box.appendChild(input)
+                        output.parentElement.removeChild(output)
+                        p2box.appendChild(output)
+                    }
+                    factor = Math.pow(state.pizza2/2,2)/Math.pow(state.pizza1/2,2)
+                } else {
+                    if (input.parentElement != p2box) {
+                        input.parentElement.removeChild(input)
+                        p2box.appendChild(input)
+                        output.parentElement.removeChild(output)
+                        p1box.appendChild(output)
+                    }
+                    factor = Math.pow(state.pizza1/2,2)/Math.pow(state.pizza2/2,2)
+                }
+                input.value = state.refPrice
+                var price =  parseFloat(state.refPrice)
+                output.innerText = (price) ? "$" + (factor * price).toFixed(2) : "??"
+
+            }
+
             function drawPizzas(pizza1, pizza2) {
                 var settings = Object.assign({}, defaultSettings)
                 var smallerPizza, largerPizza
@@ -203,24 +256,32 @@
             function updatePizzas() {
                 var p1 = parseInt(document.getElementById("pizza1").value);
                 var p2 = parseInt(document.getElementById("pizza2").value);
+                state.pizza1 = p1
+                state.pizza2 = p2
                 var pizza1 = {
                     diameter: p1,
-                    color: "#F2454B"
+                    color: defaultSettings.pizza1Color
                 }
                 var pizza2 = {
                     diameter: p2,
-                    color: "#F5B634"
+                    color: defaultSettings.pizza2Color
                 }
                 drawPizzas(pizza1, pizza2)
             }
 
             function init() {
-                document.getElementById("pizza1").addEventListener("input", 
-                    updatePizzas)
-                document.getElementById("pizza2").addEventListener("input", 
-                    updatePizzas)
+                var p1 = document.getElementById("pizza1")
+                p1.addEventListener("input", updatePizzas)
+                p1.value = state.pizza1
+                var p2 = document.getElementById("pizza2")
+                p2.addEventListener("input", updatePizzas)
+                p2.value = state.pizza2
+                var swap = document.getElementById("swapprice")
+                swap.addEventListener("click", swapPriceRef)
+                var price = document.getElementById("refprice")
+                price.addEventListener("input", updatePrice)
                 updatePizzas()
-                
+                updatePrices()
             }
 
         </script>
@@ -234,10 +295,10 @@
                 </p>
             </section>
             <section>
-                <div>
+                <div class="clearfix">
                     <div class="half">
                         <h2>Pizza 1</h2>
-                        <input type="range" min="1" max="36" value="8" class="slider" id="pizza1">
+                        <input type="range" min="1" max="36" class="slider" id="pizza1">
                         <div class="pizzabox">
                             <div id="pizza1pic"></div>
                             <span id="pizza1label"></span>
@@ -245,7 +306,7 @@
                     </div>
                     <div class="half">
                         <h2>Pizza 2</h2>
-                        <input type="range" min="1" max="36" value="12" class="slider" id="pizza2">
+                        <input type="range" min="1" max="36" class="slider" id="pizza2">
                         <div class="pizzabox">
                             <div id="pizza2pic"></div>
                             <span id="pizza2label"></span>
@@ -255,21 +316,38 @@
             </section>
             <section>
                 <div>
-                    <div>
-                        <h3>How many smaller pizzas can be made from larger pizza?</h3>
-                        <div id="extendsmaller"></div>
-                        <p id="extendsmallertext"></p>
-                    </div>
+                    <h3>How many smaller pizzas can be made from larger pizza?</h3>
+                    <div id="extendsmaller"></div>
+                    <p id="extendsmallertext"></p>
                 </div>
             </section>
             <section>
                 <div>
-                    <div>
-                        <h3>Where would the smaller pizza fit in the larger?</h3>
-                        <div id="removesmaller"></div>
-                        <p id="removesmallertext"></p>
-                    </div>
-            </div>
+                    <h3>Where would the smaller pizza fit in the larger?</h3>
+                    <div id="removesmaller"></div>
+                    <p id="removesmallertext"></p>
+                </div>
             </section>
+            <section>
+                <div>
+                <h3>What if prices were proportional to area?</h3>
+                <div class="clearfix">
+                    <div class="half">
+                        <p>Cost of Pizza 1</p>
+                        <div id="pizza1price">
+                            <input type="text" id="refprice" size=10/>
+                        </div>
+                    </div>
+                    <div class="half">
+                        <p>Cost of Pizza 2</p>
+                        <div id="pizza2price">
+                            <span id="otherprice">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="swapprice">&lt;- Switch input -&gt;</button>
+                </div>
+            </section>
+            <section></section>
     </div></body>
 </html>
