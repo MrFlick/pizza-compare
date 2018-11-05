@@ -54,46 +54,50 @@
                 refPrice: 15,
                 refPizza: 1
             }
-            function gcd(a,b){
-                return b ? gcd(b, a%b) : a;
-            }
-            function loadFracs() {
-                var result = []
-                result.push({val: 0, desc: "0"})
-                var denoms = [2, 3, 4, 5, 6, 8, 10, 16];
-                for(var i=0; i<denoms.length; i++) {
-                    var d = denoms[i];
-                    for(var n=1; n<d; n++) {
-                        if (gcd(n,d)>1) {
-                            continue;
+
+            var getMultiplier = (function() {
+                function gcd(a,b){
+                    return b ? gcd(b, a%b) : a;
+                }
+                function loadFracs() {
+                    var result = []
+                    result.push({val: 0, desc: "0"})
+                    var denoms = [2, 3, 4, 5, 6, 8, 10, 16];
+                    for(var i=0; i<denoms.length; i++) {
+                        var d = denoms[i];
+                        for(var n=1; n<d; n++) {
+                            if (gcd(n,d)>1) {
+                                continue;
+                            }
+                            result.push({val: n/d, desc: n+"/"+d})
                         }
-                        result.push({val: n/d, desc: n+"/"+d})
                     }
+                    return result.sort(function(a,b) {return a.val-b.val})
                 }
-                return result.sort(function(a,b) {return a.val-b.val})
-            }
-            defaultSettings.fracs = loadFracs()
-            function nearestFrac(x, fracs) {
-                var diff = Math.abs(x - fracs[0].val);
-                var i = 0;
-                while( Math.abs(x - fracs[i+1].val) < diff && i<fracs.length-2) {
-                    diff = x-fracs[i+1].val
-                    i++
+                function nearestFrac(x, fracs) {
+                    var diff = Math.abs(x - fracs[0].val);
+                    var i = 0;
+                    while( Math.abs(x - fracs[i+1].val) < diff && i<fracs.length-2) {
+                        diff = x-fracs[i+1].val
+                        i++
+                    }
+                    return fracs[i];
                 }
-                return fracs[i];
-            }
-            function getMultiplier(x, fracs) {
-                var base = Math.floor(x)
-                var dec = x - base
-                var nearest = nearestFrac(dec, fracs)
-                var approx = true;
-                if(Math.abs(nearest.val-dec)<.0001) {
-                    approx = false;
+                var _fracs = loadFracs()
+                return function(x) {
+                    var base = Math.floor(x)
+                    var dec = x - base
+                    var nearest = nearestFrac(dec, _fracs)
+                    var approx = true;
+                    if(Math.abs(nearest.val-dec)<.0001) {
+                        approx = false;
+                    }
+                    return ((approx) ? "~" : "") + 
+                        [((base>0) ? base : ""),
+                        ((nearest.val!=0) ? nearest.desc : "")].join(" ")
                 }
-                return ((approx) ? "~" : "") + 
-                    [((base>0) ? base : ""),
-                    ((nearest.val!=0) ? nearest.desc : "")].join(" ")
-            }
+            })();
+            
             function getPercent(x) {
                 var dec = (x*100) % 1
                 var approx = false
@@ -121,7 +125,7 @@
                 var growthFactor = stats.growthFactor;
                 if (growthFactor<=1) return ""
                 return "You can make " + 
-                    getMultiplier(growthFactor, settings.fracs) +
+                    getMultiplier(growthFactor) +
                     " smaller pizzas from the larger pizza."          
             }
             function markAdditionalSlice(stats) {
@@ -136,7 +140,7 @@
             function getAdditionalText(stats) {
                 var existingProp = stats.existingProp;
                 if (existingProp >= 1) return ""
-                return "The smaller pizza would take up  " + 
+                return "The smaller pizza would take up  " +
                     getPercent(existingProp) +
                     " of the larger pizza."
             }
@@ -217,7 +221,7 @@
             function drawPizzas() {
                 var settings = Object.assign({}, defaultSettings)
                 var stats = calcStats(state)
-                
+
                 if (stats.largerPizza.diameter * settings.inchToPixel>500/2) {
                     settings.inchToPixel = (500/2)/stats.largerPizza.diameter
                 }
