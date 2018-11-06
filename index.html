@@ -1,5 +1,8 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
+        <meta charset="utf-8"/>
+        <title>Pizza Comparer</title>
         <link href="https://fonts.googleapis.com/css?family=Fjalla+One" rel="stylesheet">
         <style>
             body { 
@@ -334,11 +337,11 @@
                 stats.refPrice = state.refPrice
                 stats.refPizza = state.refPizza
                 if (stats.refPizza == 1) {
-                    stats.otherPrice = state.refPrice * 
+                    stats.otherPrice = state.refPrice *
                         stats.pizza2.propArea/
                         stats.pizza1.propArea
                 } else {
-                    stats.otherPrice = state.refPrice * 
+                    stats.otherPrice = state.refPrice *
                         stats.pizza1.propArea/
                         stats.pizza2.propArea
                 }
@@ -384,66 +387,63 @@
     </head>
     <body onload="init()"><div>
         <h1>More Pizza?</h1>
-            <section>
-                <p>This visualization will allow you to compare two different
-                    pizza sizes to see how much more/less pizza you get when
-                    actually comparing the surface area.
-                </p>
-            </section>
-            <section>
-                <div class="clearfix">
-                    <div class="half" id="pizza1">
-                        <h2>Pizza 1</h2>
-                        <input type="range" min="1" max="36" class="slider">
-                        <div class="pizzabox">
-                            <div class="draw"></div>
-                            <span class="label"></span>
-                        </div>
-                    </div>
-                    <div class="half"  id="pizza2">
-                        <h2>Pizza 2</h2>
-                        <input type="range" min="1" max="36" class="slider">
-                        <div class="pizzabox">
-                            <div class="draw"></div>
-                            <span class="label"></span>
-                        </div>
+        <p>This visualization will allow you to compare two different
+            pizza sizes to see how much more/less pizza you get when
+            actually comparing the surface area.
+        </p>
+        <section>
+            <div class="clearfix">
+                <div class="half" id="pizza1">
+                    <h2>Pizza 1</h2>
+                    <input type="range" min="1" max="36" class="slider">
+                    <div class="pizzabox">
+                        <div class="draw"></div>
+                        <span class="label"></span>
                     </div>
                 </div>
-            </section>
-            <section id="extendsmaller">
-                <div>
-                    <h3>How many smaller pizzas can be made from larger pizza?</h3>
-                    <div class="draw"></div>
-                    <p class="label"></p>
-                </div>
-            </section>
-            <section id="embedsmaller">
-                <div>
-                    <h3>Where would the smaller pizza fit in the larger?</h3>
-                    <div class="draw"></div>
-                    <p class="label"></p>
-                </div>
-            </section>
-            <section id="compareprice">
-                <div>
-                <h3>What if prices were proportional to area?</h3>
-                <div class="clearfix">
-                    <div class="half">
-                        <p>Cost of Pizza 1</p>
-                        <div class="pizza1">
-                            <input type="text" class="refprice" size=10/>
-                        </div>
-                    </div>
-                    <div class="half">
-                        <p>Cost of Pizza 2</p>
-                        <div class="pizza2">
-                            <span class="otherprice">$0.00</span>
-                        </div>
+                <div class="half"  id="pizza2">
+                    <h2>Pizza 2</h2>
+                    <input type="range" min="1" max="36" class="slider">
+                    <div class="pizzabox">
+                        <div class="draw"></div>
+                        <span class="label"></span>
                     </div>
                 </div>
-                <button>&lt;- Switch input -&gt;</button>
+            </div>
+        </section>
+        <section id="extendsmaller">
+            <div>
+                <h3>How many smaller pizzas can be made from larger pizza?</h3>
+                <div class="draw"></div>
+                <p class="label"></p>
+            </div>
+        </section>
+        <section id="embedsmaller">
+            <div>
+                <h3>Where would the smaller pizza fit in the larger?</h3>
+                <div class="draw"></div>
+                <p class="label"></p>
+            </div>
+        </section>
+        <section id="compareprice">
+            <div>
+            <h3>What if prices were proportional to area?</h3>
+            <div class="clearfix">
+                <div class="half">
+                    <p>Cost of Pizza 1</p>
+                    <div class="pizza1">
+                        <input type="text" class="refprice" size=10 />
+                    </div>
                 </div>
-            </section>
-            <section></section>
+                <div class="half">
+                    <p>Cost of Pizza 2</p>
+                    <div class="pizza2">
+                        <span class="otherprice">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            <button>&lt;- Switch input -&gt;</button>
+            </div>
+        </section>
     </div></body>
 </html>
