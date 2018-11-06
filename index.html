@@ -144,25 +144,20 @@
                 return result;
             }
 
-            function swapPriceRef () {
-                state.refPizza = (state.refPizza==1) ? 2 : 1
-                updatePrices()
-            }
-
-            function updatePrice() {
-                var price = document.getElementById("refprice").value
-                state.refPrice = price
-                updatePrices()
-            }
-
             function PizzaBox(node, forPizza, onupdate) {
                 var input = node.querySelector("input")
                 var picture = node.querySelector(".draw")
                 var label = node.querySelector(".label")
 
-                function init(stats, settings) {
+                function sendStateUpdate() {
+                    var update = {}
+                    update[forPizza] = value()
+                    onupdate(update)
+                }
+
+                function init(stats) {
                     input.value = stats[forPizza].diameter
-                    input.addEventListener("input", onupdate)
+                    input.addEventListener("input", sendStateUpdate)
                 }
                 function update(stats, settings) {
                     label.innerText = stats[forPizza].diameter + "\""
@@ -245,32 +240,68 @@
                 this.update = update
             }
 
-            function updatePrices() {
-                var p1box = document.getElementById("pizza1price")
-                var p2box = document.getElementById("pizza2price")
-                var input = document.getElementById("refprice")
-                var output = document.getElementById("otherprice")
-                var factor = 1
-                if (state.refPizza==1) {
-                    if (input.parentElement != p1box) {
-                        input.parentElement.removeChild(input)
-                        p1box.appendChild(input)
-                        output.parentElement.removeChild(output)
-                        p2box.appendChild(output)
-                    }
-                    factor = Math.pow(state.pizza2/2,2)/Math.pow(state.pizza1/2,2)
+
+            function PriceCompare(node, onupdate) {
+                var swap = node.querySelector("button")
+                var p1 = node.querySelector(".pizza1")
+                var p2 = node.querySelector(".pizza2")
+                var input = node.querySelector("input.refprice")
+                var label = node.querySelector(".otherprice")
+                var inputNodes, outputNodes
+                var activePizza
+                if (p1.contains(input)) {
+                    activePizza = 1
+                } else if (p2.contains(input)) {
+                    activePizza = 2
                 } else {
-                    if (input.parentElement != p2box) {
-                        input.parentElement.removeChild(input)
-                        p2box.appendChild(input)
-                        output.parentElement.removeChild(output)
-                        p1box.appendChild(output)
-                    }
-                    factor = Math.pow(state.pizza1/2,2)/Math.pow(state.pizza2/2,2)
+                    throw("can't determine active pizza side")
                 }
-                input.value = state.refPrice
-                var price =  parseFloat(state.refPrice)
-                output.innerText = (price) ? (factor * price).toLocaleString(undefined, { style: 'currency', currency: 'USD' }) : "??"
+
+                function sendSwapUpdate() {
+                    var newActive = (activePizza==1) ? 2 : 1
+                    onupdate({refPizza: newActive})
+                }
+
+                function sendPriceUpdate() {
+                    onupdate({refPrice: value()})
+                }
+
+                function init(stats) {
+                    activePizza = state.refPizza
+                    input.value = state.refPrice
+                    input.addEventListener("input", sendPriceUpdate)
+                    swap.addEventListener("click", sendSwapUpdate)
+                }
+
+                function swapNodes() {
+                    var nodesP1 = Array.prototype.slice.call(p1.childNodes)
+                    var nodesP2 = Array.prototype.slice.call(p2.childNodes)
+                    nodesP1.forEach(function(x) {
+                        p2.appendChild(x)
+                    })
+                    nodesP2.forEach(function(x) {
+                        p1.appendChild(x)
+                    })
+                }
+
+                function update(state, settings) {
+                    if (activePizza != state.refPizza) {
+                        swapNodes()
+                        activePizza = state.refPizza
+                    }
+                    label.innerText = (state.otherPrice) ? 
+                        (state.otherPrice).toLocaleString(undefined, { style: 'currency', currency: 'USD' }) 
+                        : "??"
+                }
+
+                function value() {
+                    var price = parseFloat(input.value)
+                    return price
+                }
+
+                this.init = init
+                this.update = update
+                this.value = value
             }
 
             function calcStats(state) {
@@ -300,13 +331,26 @@
                     stats.largerPizza.propArea
                 stats.growthFactor = stats.largerPizza.propArea/
                     stats.smallerPizza.propArea
+                stats.refPrice = state.refPrice
+                stats.refPizza = state.refPizza
+                if (stats.refPizza == 1) {
+                    stats.otherPrice = state.refPrice * 
+                        stats.pizza2.propArea/
+                        stats.pizza1.propArea
+                } else {
+                    stats.otherPrice = state.refPrice * 
+                        stats.pizza1.propArea/
+                        stats.pizza2.propArea
+                }
                 return stats
             }
 
-            function updatePizzas() {
-                state.pizza1 = views.p1.value()
-                state.pizza2 = views.p2.value()
+            function updateState(newvals) {
+                state = Object.assign(state, newvals)
+                updateDisplay()
+            }
 
+            function updateDisplay() {
                 var settings = Object.assign({}, defaultSettings)
                 var stats = calcStats(state)
 
@@ -318,27 +362,22 @@
                 views.p2.update(stats, settings)
                 views.extend.update(stats, settings)
                 views.embed.update(stats, settings)
-
-                updatePrices()
+                views.price.update(stats, settings)
             }
 
             function init() {
                 views.p1 = new PizzaBox(document.getElementById("pizza1"),
-                    "pizza1", updatePizzas)
+                    "pizza1", updateState)
                 views.p2 = new PizzaBox(document.getElementById("pizza2"),
-                    "pizza2", updatePizzas)
+                    "pizza2", updateState)
                 var stats = calcStats(state)
                 views.p1.init(stats)
                 views.p2.init(stats)
                 views.extend = new ExtendSmaller(document.getElementById("extendsmaller"))
                 views.embed = new EmbedSmaller(document.getElementById("embedsmaller"))
-                var swap = document.getElementById("swapprice")
-                swap.addEventListener("click", swapPriceRef)
-                var price = document.getElementById("refprice")
-                price.value = state.refPrice
-                price.addEventListener("input", updatePrice)
-                updatePizzas()
-                updatePrices()
+                views.price = new PriceCompare(document.getElementById("compareprice"), updateState)
+                views.price.init(stats)
+                updateDisplay()
             }
 
         </script>
@@ -385,24 +424,24 @@
                     <p class="label"></p>
                 </div>
             </section>
-            <section>
+            <section id="compareprice">
                 <div>
                 <h3>What if prices were proportional to area?</h3>
                 <div class="clearfix">
                     <div class="half">
                         <p>Cost of Pizza 1</p>
-                        <div id="pizza1price">
-                            <input type="text" id="refprice" size=10/>
+                        <div class="pizza1">
+                            <input type="text" class="refprice" size=10/>
                         </div>
                     </div>
                     <div class="half">
                         <p>Cost of Pizza 2</p>
-                        <div id="pizza2price">
-                            <span id="otherprice">$0.00</span>
+                        <div class="pizza2">
+                            <span class="otherprice">$0.00</span>
                         </div>
                     </div>
                 </div>
-                <button id="swapprice">&lt;- Switch input -&gt;</button>
+                <button>&lt;- Switch input -&gt;</button>
                 </div>
             </section>
             <section></section>
